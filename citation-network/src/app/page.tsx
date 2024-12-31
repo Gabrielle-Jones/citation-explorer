@@ -1,77 +1,94 @@
 // src/app/page.tsx
 'use client';
 
-import React, { useState } from 'react';
-import { PaperInput } from '@/components/paper/PaperInput';
-import { CitationNetwork } from '@/components/network/CitationNetwork';
+import React, { useEffect } from 'react';
+import { EnhancedPaperInput } from '@/components/paper/EnhancedPaperInput';
+import { TimelineNetwork } from '@/components/network/TimelineNetwork';
+import { useNetwork } from '@/hooks/useNetwork';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 
 export default function Home() {
-  const [papers, setPapers] = useState<any[]>([]);
+  const { networkData, papers, loading, error, progress, processNetwork } = useNetwork();
 
-  const handlePapersFound = (newPapers: any[]) => {
-    setPapers(newPapers);
-    console.log('Received papers:', newPapers); // Debug log
+  // Debug logs
+  useEffect(() => {
+    console.log('Page mounted');
+    console.log('Current state:', {
+      hasNetworkData: !!networkData,
+      papersCount: papers.length,
+      loading,
+      error,
+      progress
+    });
+  }, [networkData, papers, loading, error, progress]);
+
+  const handlePaperSubmit = async (identifier: string, type: 'doi' | 'arxiv') => {
+    console.log('Handling paper submit:', { identifier, type });
+    try {
+      if (type === 'arxiv') {
+        const doi = `10.48550/arXiv.${identifier}`;
+        await processNetwork(doi);
+      } else {
+        await processNetwork(identifier);
+      }
+    } catch (err) {
+      console.error('Error processing paper:', err);
+    }
   };
 
-  // Process papers into network data format
-  const processNetworkData = () => {
-    if (!papers.length) return { nodes: [], links: [] };
-
-    const mainPaper = papers[0];
-    const citations = mainPaper.citations || [];
-
-    // Create nodes array
-    const nodes = [
-      {
-        id: mainPaper.paperId || 'main',
-        title: mainPaper.title,
-        radius: 30,
-        citations: mainPaper.citationCount || 0
-      },
-      ...citations.map((citation: any) => ({
-        id: citation.paperId || `citation-${Math.random()}`,
-        title: citation.title,
-        radius: 20,
-        citations: citation.citationCount || 0
-      }))
-    ];
-
-    // Create links array
-    const links = citations.map((citation: any) => ({
-      source: mainPaper.paperId || 'main',
-      target: citation.paperId || `citation-${Math.random()}`,
-      strength: 1
-    }));
-
-    return { nodes, links };
-  };
+  // Debug render
+  console.log('Rendering page with:', {
+    hasNetworkData: !!networkData,
+    papersCount: papers.length,
+    loading,
+    error
+  });
 
   return (
-    <main className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-1">
-          <PaperInput onPapersFound={handlePapersFound} />
-          {/* Debug display of papers */}
-          {papers.length > 0 && (
-            <div className="mt-4 p-4 bg-white rounded-md shadow">
-              <h3 className="font-medium">Found Papers:</h3>
-              <div className="mt-2 space-y-2">
-                {papers.map((paper, index) => (
-                  <div key={index} className="text-sm">
-                    <p className="font-medium">{paper.title}</p>
-                    <p className="text-gray-600">Citations: {paper.citationCount || 0}</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-4">
+        <h1 className="text-2xl font-bold mb-4">Citation Explorer</h1>
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-1">
+            <EnhancedPaperInput onSubmit={handlePaperSubmit} />
+            
+            {loading && (
+              <Card className="mt-4">
+                <CardContent>
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <p>Loading...</p>
                   </div>
-                ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {error && (
+              <div className="mt-4 p-4 bg-red-50 text-red-600 rounded">
+                {error}
               </div>
-            </div>
-          )}
-        </div>
-        <div className="lg:col-span-2 min-h-[600px] bg-white rounded-lg shadow">
-          {papers.length > 0 && (
-            <CitationNetwork data={processNetworkData()} />
-          )}
+            )}
+
+            {papers.length > 0 && (
+              <Card className="mt-4">
+                <CardContent>
+                  <h3 className="font-medium">Found Papers: {papers.length}</h3>
+                  {papers.map(paper => (
+                    <div key={paper.id} className="mt-2 p-2 bg-gray-50 rounded">
+                      <p>{paper.title}</p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <div className="lg:col-span-2 bg-white rounded-lg shadow min-h-[600px]">
+            {networkData && <TimelineNetwork data={networkData} />}
+          </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

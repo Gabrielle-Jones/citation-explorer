@@ -4,6 +4,27 @@ export interface Author {
   id?: string;
 }
 
+export interface NetworkNode {
+  id: string;
+  title: string;
+  year: number;
+  citations: number;
+  radius: number;
+  importance: number;
+  cluster: number;
+}
+
+export interface NetworkLink {
+  source: string;
+  target: string;
+  strength: number;
+}
+
+export interface NetworkData {
+  nodes: NetworkNode[];
+  links: NetworkLink[];
+}
+
 export interface Paper {
   uuid: string;          // Internal unique identifier
   id: string;           // API-specific identifier
@@ -24,25 +45,4 @@ export interface Paper {
 export interface CitationResponse {
   citations: Paper[];
   error: string | null;
-}
-
-export interface NetworkNode {
-  id: string;          // Uses UUID
-  title: string;
-  radius: number;
-  x?: number;
-  y?: number;
-  depth: number;      // For visual grouping
-  citations: number;  // For sizing
-}
-
-export interface NetworkLink {
-  source: string;     // UUID
-  target: string;     // UUID
-  strength: number;
-}
-
-export interface NetworkData {
-  nodes: NetworkNode[];
-  links: NetworkLink[];
 }
